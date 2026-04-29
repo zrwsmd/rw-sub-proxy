@@ -51,7 +51,7 @@ func RunCLI() error {
 
 	fmt.Println()
 	fmt.Println("╔═══════════════════════════════════════════╗")
-	fmt.Println("║       Sub2API Installation Wizard         ║")
+	fmt.Println("║        rwsmd Installation Wizard          ║")
 	fmt.Println("╚═══════════════════════════════════════════╝")
 	fmt.Println()
 
@@ -96,7 +96,7 @@ func RunCLI() error {
 	cfg.Database.Password = promptPassword("PostgreSQL Password")
 
 	for {
-		cfg.Database.DBName = promptString(reader, "Database Name", "sub2api")
+		cfg.Database.DBName = promptString(reader, "Database Name", "rwsmd")
 		if cliValidateDBName(cfg.Database.DBName) {
 			break
 		}

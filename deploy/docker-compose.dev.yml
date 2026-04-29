@@ -23,7 +23,7 @@ services:
       - AUTO_SETUP=true
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
-      - SERVER_MODE=debug
+      - SERVER_MODE=${SERVER_MODE:-release}
       - RUN_MODE=${RUN_MODE:-standard}
       - DATABASE_HOST=postgres
       - DATABASE_PORT=5432
@@ -35,7 +35,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_DB=${REDIS_DB:-0}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@sub2api.local}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@rwsmd.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - JWT_SECRET=${JWT_SECRET:-}
       - TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY:-}
