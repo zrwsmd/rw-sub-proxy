@@ -13,6 +13,8 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+      args:
+        FRONTEND_NODE_MAX_OLD_SPACE_SIZE: "768"
     container_name: sub2api-dev
     restart: unless-stopped
     ports:

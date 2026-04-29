@@ -9,6 +9,7 @@
 ARG NODE_IMAGE=node:24-alpine
 ARG GOLANG_IMAGE=golang:1.26.2-alpine
 ARG ALPINE_IMAGE=alpine:3.20
+ARG FRONTEND_NODE_MAX_OLD_SPACE_SIZE=768
 ARG GOPROXY=https://goproxy.cn,direct
 ARG GOSUMDB=sum.golang.google.cn
 
@@ -18,6 +19,8 @@ ARG GOSUMDB=sum.golang.google.cn
 FROM ${NODE_IMAGE} AS frontend-builder
 
 WORKDIR /app/frontend
+ARG FRONTEND_NODE_MAX_OLD_SPACE_SIZE
+ENV NODE_OPTIONS=--max-old-space-size=${FRONTEND_NODE_MAX_OLD_SPACE_SIZE}
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
