@@ -1,0 +1,136 @@
+# =============================================================================
+# rwsmd Docker Compose - Runtime Only (No Source Build)
+# =============================================================================
+# Best for small Debian servers that should only run containers.
+# Build the application image on another machine, then load it on the server.
+# Default port in this file is 9091.
+# =============================================================================
+
+services:
+  sub2api:
+    image: ${APP_IMAGE:-rw-sub-proxy:latest}
+    container_name: rw-sub-proxy
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 100000
+        hard: 100000
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:${SERVER_PORT:-9091}:${SERVER_PORT:-9091}"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - AUTO_SETUP=true
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=${SERVER_PORT:-9091}
+      - SERVER_MODE=${SERVER_MODE:-release}
+      - RUN_MODE=${RUN_MODE:-standard}
+
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=${POSTGRES_USER:-sub2api}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - DATABASE_DBNAME=${POSTGRES_DB:-sub2api}
+      - DATABASE_SSLMODE=disable
+      - DATABASE_MAX_OPEN_CONNS=${DATABASE_MAX_OPEN_CONNS:-20}
+      - DATABASE_MAX_IDLE_CONNS=${DATABASE_MAX_IDLE_CONNS:-5}
+      - DATABASE_CONN_MAX_LIFETIME_MINUTES=${DATABASE_CONN_MAX_LIFETIME_MINUTES:-30}
+      - DATABASE_CONN_MAX_IDLE_TIME_MINUTES=${DATABASE_CONN_MAX_IDLE_TIME_MINUTES:-5}
+
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_POOL_SIZE=${REDIS_POOL_SIZE:-128}
+      - REDIS_MIN_IDLE_CONNS=${REDIS_MIN_IDLE_CONNS:-2}
+      - REDIS_ENABLE_TLS=${REDIS_ENABLE_TLS:-false}
+
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@rwsmd.local}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - JWT_SECRET=${JWT_SECRET:-}
+      - JWT_EXPIRE_HOUR=${JWT_EXPIRE_HOUR:-24}
+      - TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY:-}
+      - TZ=${TZ:-Asia/Shanghai}
+
+      - GEMINI_OAUTH_CLIENT_ID=${GEMINI_OAUTH_CLIENT_ID:-}
+      - GEMINI_OAUTH_CLIENT_SECRET=${GEMINI_OAUTH_CLIENT_SECRET:-}
+      - GEMINI_OAUTH_SCOPES=${GEMINI_OAUTH_SCOPES:-}
+      - GEMINI_QUOTA_POLICY=${GEMINI_QUOTA_POLICY:-}
+      - GEMINI_CLI_OAUTH_CLIENT_SECRET=${GEMINI_CLI_OAUTH_CLIENT_SECRET:-}
+      - ANTIGRAVITY_OAUTH_CLIENT_SECRET=${ANTIGRAVITY_OAUTH_CLIENT_SECRET:-}
+
+      - SECURITY_URL_ALLOWLIST_ENABLED=${SECURITY_URL_ALLOWLIST_ENABLED:-false}
+      - SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=${SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP:-false}
+      - SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS=${SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS:-false}
+      - SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS=${SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS:-}
+
+      - UPDATE_PROXY_URL=${UPDATE_PROXY_URL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - rw-sub-proxy-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -T 5 -O /dev/null http://localhost:${SERVER_PORT:-9091}/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: rw-sub-proxy-postgres
+    restart: unless-stopped
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    command:
+      - postgres
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-200}
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-128MB}
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-sub2api}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - POSTGRES_DB=${POSTGRES_DB:-sub2api}
+      - PGDATA=/var/lib/postgresql/data
+      - TZ=${TZ:-Asia/Shanghai}
+    networks:
+      - rw-sub-proxy-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sub2api} -d ${POSTGRES_DB:-sub2api}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:8-alpine
+    container_name: rw-sub-proxy-redis
+    restart: unless-stopped
+    volumes:
+      - ./redis_data:/data
+    command: >
+      sh -c '
+        redis-server
+        --save 60 1
+        --appendonly yes
+        --appendfsync everysec
+        ${REDIS_PASSWORD:+--requirepass "$REDIS_PASSWORD"}'
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - REDISCLI_AUTH=${REDIS_PASSWORD:-}
+    networks:
+      - rw-sub-proxy-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+networks:
+  rw-sub-proxy-network:
+    driver: bridge
