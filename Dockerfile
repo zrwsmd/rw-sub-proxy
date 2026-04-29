@@ -32,7 +32,7 @@ RUN pnpm install --frozen-lockfile
 
 # Copy frontend source and build
 COPY frontend/ ./
-RUN pnpm run build
+RUN pnpm run build:docker
 
 # -----------------------------------------------------------------------------
 # Stage 2: Backend Builder
